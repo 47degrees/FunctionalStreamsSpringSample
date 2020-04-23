@@ -1,1 +1,1 @@
-rootProject.name = "functionalstreams"
+rootProject.name = "Server"

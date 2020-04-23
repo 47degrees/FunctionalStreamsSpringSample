@@ -6,8 +6,6 @@ import org.springframework.web.reactive.function.client.WebClient
 import reactor.core.publisher.Mono
 import java.time.Duration
 import java.time.Instant
-import java.util.stream.Collectors
-import java.util.stream.Stream
 
 
 object CallPersonUsingWebClient {

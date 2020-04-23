@@ -32,9 +32,8 @@ object CallPersonUsingWebClient {
      We make a list of type Mono and wait for all of them to complete, rather than waiting
      for each one:
      */
-    val list: List<Mono<Person>> = Stream.of(1, 2, 3, 4, 5)
+    val list: List<Mono<Person>> = listOf(1, 2, 3, 4, 5)
       .map { i -> client.get().uri("/person/{id}", i).retrieve().bodyToMono(Person::class.java) }
-      .collect(Collectors.toList())
 
     Mono.`when`(list).block()
     logTime(start)

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="success">#4caf50</color>
+    <color name="failure">#d32f2f</color>
+    <color name="arrow">#0495D7</color>
+    <color name="arrow_dark">#354755</color>
+    <color name="text_over_dark">#FFFFFF</color>
+</resources>

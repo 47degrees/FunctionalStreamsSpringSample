@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="colorPrimary">@color/arrow_dark</item>
+        <item name="colorPrimaryDark">@color/arrow_dark</item>
+        <item name="colorSecondary">@color/arrow</item>
+    </style>
+
+    <style name="Launcher" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="colorPrimaryDark">@color/arrow_dark</item>
+        <item name="android:windowBackground">@drawable/background_splash</item>
+    </style>
+</resources>

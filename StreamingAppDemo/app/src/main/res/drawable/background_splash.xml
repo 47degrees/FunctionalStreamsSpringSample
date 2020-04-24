@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:drawable="@color/arrow_dark"/>
+
+    <item
+        android:drawable="@drawable/ic_arrow_silhouette"
+        android:gravity="center"/>
+</layer-list>

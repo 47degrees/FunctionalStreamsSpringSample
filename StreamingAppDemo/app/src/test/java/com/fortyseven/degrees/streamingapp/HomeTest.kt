@@ -26,23 +26,23 @@ class HomeTest {
         )
 
     @Test
-    fun Empty_Screen_Automatically_Refreshes_Data() {
-        val empty = TestRxViewModel<HomeVM>(HomeVM.Empty)
+    fun `Empty screen automatically refreshes data`() {
+        val empty = TestRxViewModel<HomeVM>(HomeVM.Idle)
 
         home(empty_interactions, empty)
             .program()
             .flatMap { empty.state() }
             .test()
             .awaitCount(3)
-            .assertValueAt(0, HomeVM.Empty)
+            .assertValueAt(0, HomeVM.Idle)
             .assertValueAt(1, HomeVM.Loading)
             .assertValueAt(2) { it is HomeVM.Full }
             .assertNotTerminated()
     }
 
     @Test
-    fun Loaded_Screen_Does_Nothing() {
-        val empty = TestRxViewModel<HomeVM>(HomeVM.Empty)
+    fun `Loaded screen does nothing`() {
+        val empty = TestRxViewModel<HomeVM>(HomeVM.Idle)
 
         empty.post(HomeVM.Full(emptyList()))
             .flatMap {
@@ -53,7 +53,7 @@ class HomeTest {
             }
             .test()
             .awaitCount(2)
-            .assertValueAt(0, HomeVM.Empty)
+            .assertValueAt(0, HomeVM.Idle)
             .assertValueAt(1) { it is HomeVM.Full }
             .assertNotTerminated()
     }

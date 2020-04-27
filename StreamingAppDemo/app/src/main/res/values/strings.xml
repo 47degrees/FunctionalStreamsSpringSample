@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Streaming App</string>
+    <string name="error">Something went wrong: %1$s</string>
+    <string name="empty_state">Design a nice empty state 🙏</string>
 </resources>

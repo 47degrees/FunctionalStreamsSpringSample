@@ -29,7 +29,7 @@ class PredefKtTest {
         }
 
     @Test
-    fun evalOnReturnsByDefaultOnComputation() {
+    fun `evalOn returns by default on computation`() {
         assertThreadName(EVAL_POOL_NAME)
             .evalOn(EVAL_SCHEDULER)
             .flatMap { threadName() }
@@ -40,7 +40,7 @@ class PredefKtTest {
     }
 
     @Test
-    fun evalOnReturnsOnSpecifiedScheduler() {
+    fun `evalOn returns on specified Scheduler`() {
         assertThreadName(EVAL_POOL_NAME)
             .evalOn(EVAL_SCHEDULER, returnOn = OTHER_SCHEDULER)
             .flatMap { threadName() }

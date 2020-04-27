@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit
 
 class HomeFragment : Fragment() {
 
-    private val viewModel = RxViewModel<HomeVM>(this, HomeVM.Empty)
+    private val viewModel = RxViewModel<HomeVM>(this, HomeVM.Idle)
     private val repo = MockRepository()
     private val persistence = MockPersistence()
 
@@ -66,26 +66,26 @@ class HomeFragment : Fragment() {
     ): Observable<Unit> =
         Observable.fromCallable {
             when (state) {
-                HomeVM.Empty -> Snackbar.make(
-                    view,
-                    "Design nice empty state",
-                    BaseTransientBottomBar.LENGTH_SHORT
-                ).show()
+                HomeVM.Idle -> {
+                    view.pullToRefresh.isRefreshing = false
+                }
                 HomeVM.Loading -> {
-                    Unit
+                    view.pullToRefresh.isRefreshing = true
                 } // Use default loading ad
-                is HomeVM.Full -> adapter.submitList(state.items)
-                is HomeVM.Error -> Snackbar.make(
-                    view,
-                    "Something went wrong: ${state.t}",
-                    BaseTransientBottomBar.LENGTH_SHORT
-                ).show()
+                is HomeVM.Full -> {
+                    view.pullToRefresh.isRefreshing = false
+                    adapter.submitList(state.items)
+                }
+                is HomeVM.Error -> {
+                    view.pullToRefresh.isRefreshing = false
+                    Snackbar.make(view, getString(R.string.error, state.t), BaseTransientBottomBar.LENGTH_SHORT).show()
+                }
             }
         }
 }
 
 sealed class HomeVM {
-    object Empty : HomeVM()
+    object Idle : HomeVM()
     object Loading : HomeVM()
     data class Full(val items: List<User>) : HomeVM()
     data class Error(val t: Throwable) : HomeVM()
@@ -115,11 +115,11 @@ fun MockRepository(accounts: Observable<List<User>>? = null) = object : AccountR
 }
 
 interface AccountPersistence {
-    fun readAccounts(): Observable<List<User>>
+    fun loadAccountsFromDatabase(): Observable<List<User>>
 }
 
 fun MockPersistence(accounts: Observable<List<User>>? = null) = object : AccountPersistence {
-    override fun readAccounts(): Observable<List<User>> =
+    override fun loadAccountsFromDatabase(): Observable<List<User>> =
         accounts ?: Observable.fromCallable {
             listOf(
                 User(UUID.V4.squuid(), "Simon"),
@@ -150,26 +150,29 @@ fun HomeDependency.program(): Observable<Unit> =
 
 fun HomeDependency.refreshAccountsOnPull(): Observable<Unit> =
     pullToRefresh().switchMap {
-        loadAccountsFromNetwork()
+        loadAccounts()
+            .fork(Schedulers.io(), lifecycleVM)
+            .void()
+    }
+
+fun HomeDependency.loadAccounts(): Observable<Unit> =
+    post(HomeVM.Loading).flatMap {
+        loadAccountsFromDatabase().map(HomeVM::Full).flatMap { post(it) }
+            .switchIfEmpty(loadAccountsFromNetwork())
+            .onErrorResumeNext { _: Throwable -> loadAccountsFromNetwork() }
             .fork(Schedulers.io(), lifecycleVM)
             .void()
     }
 
 fun HomeDependency.loadAccountsFromNetwork(): Observable<Unit> =
-    post(HomeVM.Loading).flatMap {
-        fetchAccounts().map(HomeVM::Full)
-            .flatMap { post(it) }
-            .onErrorResumeNext { t: Throwable -> post(HomeVM.Error(t)) }
-    }
+    fetchAccounts().map(HomeVM::Full)
+        .flatMap { post(it) }
+        .onErrorResumeNext { t: Throwable -> post(HomeVM.Error(t)) }
 
 // Only load start-up data if empty
 fun HomeDependency.loadStartUpData(): Observable<Unit> =
     isEmpty().flatMap { isEmpty ->
-        if (isEmpty) readAccounts().map(HomeVM::Full).flatMap { post(it) }
-            .switchIfEmpty(loadAccountsFromNetwork())
-            .onErrorResumeNext { _: Throwable -> loadAccountsFromNetwork() }
-            .fork(Schedulers.io(), lifecycleVM)
-            .void()
+        if (isEmpty) loadAccounts()
         else Observable.empty()
     }
 

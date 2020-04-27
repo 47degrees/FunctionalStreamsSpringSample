@@ -24,9 +24,9 @@ import java.util.concurrent.TimeUnit
 
 class HomeFragment : Fragment() {
 
-    val viewModel = RxViewModel<HomeVM>(this, HomeVM.Empty)
-    val repo = MockRepository()
-    val persistence = MockPersistence()
+    private val viewModel = RxViewModel<HomeVM>(this, HomeVM.Empty)
+    private val repo = MockRepository()
+    private val persistence = MockPersistence()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -71,7 +71,9 @@ class HomeFragment : Fragment() {
                     "Design nice empty state",
                     BaseTransientBottomBar.LENGTH_SHORT
                 ).show()
-                HomeVM.Loading -> Unit // Use default loading ad
+                HomeVM.Loading -> {
+                    Unit
+                } // Use default loading ad
                 is HomeVM.Full -> adapter.submitList(state.items)
                 is HomeVM.Error -> Snackbar.make(
                     view,

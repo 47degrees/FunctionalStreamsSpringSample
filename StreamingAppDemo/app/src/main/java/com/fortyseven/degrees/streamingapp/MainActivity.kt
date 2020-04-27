@@ -2,7 +2,6 @@ package com.fortyseven.degrees.streamingapp
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import androidx.lifecycle.ViewModel
 import com.fortyseven.degrees.streamingapp.home.HomeFragment
 
 class MainActivity : AppCompatActivity() {
@@ -18,5 +17,4 @@ class MainActivity : AppCompatActivity() {
             .replace(R.id.fragmentContainer, HomeFragment())
             .commit()
     }
-
 }

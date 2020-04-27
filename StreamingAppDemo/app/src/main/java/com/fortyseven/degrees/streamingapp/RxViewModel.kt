@@ -13,7 +13,6 @@ interface RxViewModel<A> {
     fun isEmpty(): Observable<Boolean>
     fun isNotEmpty(): Observable<Boolean> =
         isEmpty().map(Boolean::not)
-
 }
 
 fun <A> RxViewModel(lifecycle: LifecycleOwner, default: A? = null): RxViewModel<A> =

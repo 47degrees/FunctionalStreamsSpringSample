@@ -5,10 +5,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import androidx.recyclerview.widget.AsyncDifferConfig
-import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.ListAdapter
-import androidx.recyclerview.widget.RecyclerView
 import com.fortyseven.degrees.streamingapp.*
 import com.google.android.material.snackbar.BaseTransientBottomBar
 import com.google.android.material.snackbar.Snackbar
@@ -18,13 +14,10 @@ import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.fragment_home.view.*
-import kotlinx.android.synthetic.main.viewholder_user.view.*
-import memeid.UUID
-import java.util.concurrent.TimeUnit
 
 class HomeFragment : Fragment() {
 
-    private val viewModel = RxViewModel<HomeVM>(this, HomeVM.Idle)
+    private val viewModel = RxViewModel<HomeViewState>(this, HomeViewState.Idle)
     private val repo = MockRepository()
     private val persistence = MockPersistence()
 
@@ -46,7 +39,7 @@ class HomeFragment : Fragment() {
 
         Observable.merge(
             // Run business logic
-            HomeDependency.create(interactions, repo, persistence, viewModel)
+            HomeDependencies.create(interactions, repo, persistence, viewModel)
                 .program().subscribeOn(Schedulers.computation()),
 
             // Run view rendering
@@ -62,146 +55,24 @@ class HomeFragment : Fragment() {
     private fun render(
         view: View,
         adapter: UserAdapter,
-        state: HomeVM
+        state: HomeViewState
     ): Observable<Unit> =
         Observable.fromCallable {
             when (state) {
-                HomeVM.Idle -> {
+                HomeViewState.Idle -> {
                     view.pullToRefresh.isRefreshing = false
                 }
-                HomeVM.Loading -> {
+                HomeViewState.Loading -> {
                     view.pullToRefresh.isRefreshing = true
                 } // Use default loading ad
-                is HomeVM.Full -> {
+                is HomeViewState.Full -> {
                     view.pullToRefresh.isRefreshing = false
                     adapter.submitList(state.items)
                 }
-                is HomeVM.Error -> {
+                is HomeViewState.Error -> {
                     view.pullToRefresh.isRefreshing = false
                     Snackbar.make(view, getString(R.string.error, state.t), BaseTransientBottomBar.LENGTH_SHORT).show()
                 }
             }
         }
-}
-
-sealed class HomeVM {
-    object Idle : HomeVM()
-    object Loading : HomeVM()
-    data class Full(val items: List<User>) : HomeVM()
-    data class Error(val t: Throwable) : HomeVM()
-}
-
-interface HomeInteractions {
-    fun pullToRefresh(): Observable<Unit>
-}
-
-data class User(val id: UUID, val name: String) {
-    companion object
-}
-
-interface AccountRepo {
-    fun fetchAccounts(): Observable<List<User>>
-}
-
-fun MockRepository(accounts: Observable<List<User>>? = null) = object : AccountRepo {
-    override fun fetchAccounts(): Observable<List<User>> =
-        accounts ?: Observable.fromCallable {
-            listOf(
-                User(UUID.V4.squuid(), "Simon"),
-                User(UUID.V4.squuid(), "Raul"),
-                User(UUID.V4.squuid(), "Jorge")
-            )
-        }.delay(1300, TimeUnit.MILLISECONDS)
-}
-
-interface AccountPersistence {
-    fun loadAccountsFromDatabase(): Observable<List<User>>
-}
-
-fun MockPersistence(accounts: Observable<List<User>>? = null) = object : AccountPersistence {
-    override fun loadAccountsFromDatabase(): Observable<List<User>> =
-        accounts ?: Observable.fromCallable {
-            listOf(
-                User(UUID.V4.squuid(), "Simon"),
-                User(UUID.V4.squuid(), "Raul"),
-                User(UUID.V4.squuid(), "Jorge")
-            )
-        }.delay(700, TimeUnit.MILLISECONDS)
-}
-
-interface HomeDependency : HomeInteractions, AccountRepo, AccountPersistence, RxViewModel<HomeVM> {
-    companion object {
-        fun create(
-            interactions: HomeInteractions,
-            repo: AccountRepo,
-            persistence: AccountPersistence,
-            viewModel: RxViewModel<HomeVM>
-        ): HomeDependency = object : HomeDependency,
-            HomeInteractions by interactions,
-            AccountRepo by repo,
-            AccountPersistence by persistence,
-            RxViewModel<HomeVM> by viewModel {}
-    }
-}
-
-// Our home program exist out of refreshing items on P2R & loading initial data
-fun HomeDependency.program(): Observable<Unit> =
-    Observable.merge(refreshAccountsOnPull(), loadStartUpData())
-
-fun HomeDependency.refreshAccountsOnPull(): Observable<Unit> =
-    pullToRefresh().switchMap {
-        loadAccounts()
-            .fork(Schedulers.io(), lifecycleVM)
-            .void()
-    }
-
-fun HomeDependency.loadAccounts(): Observable<Unit> =
-    post(HomeVM.Loading).flatMap {
-        loadAccountsFromDatabase().map(HomeVM::Full).flatMap { post(it) }
-            .switchIfEmpty(loadAccountsFromNetwork())
-            .onErrorResumeNext { _: Throwable -> loadAccountsFromNetwork() }
-            .fork(Schedulers.io(), lifecycleVM)
-            .void()
-    }
-
-fun HomeDependency.loadAccountsFromNetwork(): Observable<Unit> =
-    fetchAccounts().map(HomeVM::Full)
-        .flatMap { post(it) }
-        .onErrorResumeNext { t: Throwable -> post(HomeVM.Error(t)) }
-
-// Only load start-up data if empty
-fun HomeDependency.loadStartUpData(): Observable<Unit> =
-    isEmpty().flatMap { isEmpty ->
-        if (isEmpty) loadAccounts()
-        else Observable.empty()
-    }
-
-// DiffUtil.ItemCallback is stateless thus can be object
-object UserDiffUtil : DiffUtil.ItemCallback<User>() {
-    override fun areItemsTheSame(oldItem: User, newItem: User): Boolean =
-        oldItem.id == newItem.id
-
-    override fun areContentsTheSame(oldItem: User, newItem: User): Boolean =
-        oldItem == newItem
-}
-
-val AsyncUserDiffUtil: AsyncDifferConfig<User> =
-    AsyncDifferConfig.Builder(UserDiffUtil).build()
-
-class UserAdapter : ListAdapter<User, UserViewHolder>(AsyncUserDiffUtil) {
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): UserViewHolder =
-        UserViewHolder(
-            LayoutInflater.from(parent.context)
-                .inflate(R.layout.viewholder_user, parent, false)
-        )
-
-    override fun onBindViewHolder(holder: UserViewHolder, position: Int) =
-        holder.bind(getItem(position))
-}
-
-class UserViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-    fun bind(user: User): Unit {
-        itemView.user_id.text = user.id.toString()
-        itemView.user_name.text = user.name
-    }
 }

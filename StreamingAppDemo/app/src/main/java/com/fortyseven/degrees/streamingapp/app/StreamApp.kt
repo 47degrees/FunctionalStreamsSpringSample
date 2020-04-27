@@ -1,4 +1,4 @@
-package com.fortyseven.degrees.streamingapp
+package com.fortyseven.degrees.streamingapp.app
 
 import android.app.Application
 import com.akaita.java.rxjava2debug.RxJava2Debug

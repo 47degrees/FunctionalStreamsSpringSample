@@ -5,6 +5,13 @@ import android.util.Log
 import androidx.lifecycle.LifecycleOwner
 import arrow.core.Either
 import arrow.core.Option
+import arrow.core.identity
+import arrow.fx.Schedule
+import arrow.fx.rx2.ForObservableK
+import arrow.fx.rx2.ObservableK
+import arrow.fx.rx2.extensions.observablek.monadDefer.monadDefer
+import arrow.fx.typeclasses.MonadDefer
+import arrow.typeclasses.Monad
 import io.reactivex.Observable
 import io.reactivex.Scheduler
 import io.reactivex.disposables.Disposable
@@ -68,19 +75,24 @@ fun <A> Observable<A>.evalOn(
     .flatMap { this }
     .observeOn(returnOn)
 
+// Debug extension method
 fun <A> Observable<A>.debug(f: (A) -> String): Observable<A> =
     flatMap { a ->
         (if (BuildConfig.DEBUG) Observable.fromCallable { Log.d("DEBUG", f(a)) }
         else unit).map { a }
     }
 
-fun log(f: () -> String): Observable<Unit> =
+// Create debugLog Observable
+fun debugLog(f: () -> String): Observable<Unit> =
     Observable.fromCallable {
         if (BuildConfig.DEBUG) Log.d("DEBUG", f())
         Unit
     }
 
-fun <A, B> eitherPar(
+/**
+ * Merges [fa] & [fb] on [scheduler], while mapping them respectively [Either.Left] & [Either.Right].
+ */
+fun <A, B> parallelEither(
     fa: Observable<A>,
     fb: Observable<B>,
     scheduler: Scheduler = Schedulers.computation()
@@ -89,6 +101,10 @@ fun <A, B> eitherPar(
     fb.map { Either.Right(it) }.subscribeOn(scheduler)
 )
 
+/**
+ * Maps [A] into [Option] [B].
+ * If the [Option] is [arrow.core.None], then the result will be ignored/filtered.
+ */
 fun <A, B> Observable<A>.filterMap(f: (A) -> Option<B>): Observable<B> =
     flatMap { a ->
         f(a).fold(
@@ -97,3 +113,26 @@ fun <A, B> Observable<A>.filterMap(f: (A) -> Option<B>): Observable<B> =
         )
     }
 
+fun <A> Observable<Option<A>>.filterOption(): Observable<A> =
+        filterMap(::identity)
+
+
+typealias ObservableSchedule<In, Out> = Schedule<ForObservableK, In, Out>
+
+object ScheduleForMonadDefer : Schedule.Companion.ScheduleFor<ForObservableK> {
+    override fun MM(): Monad<ForObservableK> = ObservableK.monadDefer()
+    fun <In, Out> Schedule<ForObservableK, In, Out>.jittered() =
+        jittered(ObservableK.monadDefer())
+}
+
+/**
+ * DSL entry point to write Schedule's for RxJava without dealing with `Kind` or typeclasses
+ *
+ * fun <A> jitteredRetry(): ObservableSchedule<A, A> =
+ *   RxSchedule {
+ *     spaced<A>(300.milliseconds).jittered() zipRight identity<A>()
+ *   }
+ */
+fun <In, Out> RxSchedule(
+    f: ScheduleForMonadDefer.() -> ObservableSchedule<In, Out>
+): ObservableSchedule<In, Out> = f(ScheduleForMonadDefer)

@@ -1,7 +1,8 @@
-package com.fortyseven.degrees.streamingapp
+package com.fortyseven.degrees.streamingapp.main
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import com.fortyseven.degrees.streamingapp.R
 import com.fortyseven.degrees.streamingapp.home.HomeFragment
 
 class MainActivity : AppCompatActivity() {

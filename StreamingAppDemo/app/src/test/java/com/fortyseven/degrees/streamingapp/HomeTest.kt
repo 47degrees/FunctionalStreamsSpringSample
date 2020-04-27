@@ -1,7 +1,6 @@
 package com.fortyseven.degrees.streamingapp
 
 import arrow.core.extensions.either.foldable.firstOrNone
-import com.fortyseven.degrees.streamingapp.home.*
 import io.reactivex.Observable
 import org.junit.Rule
 import org.junit.Test
@@ -16,9 +15,9 @@ class HomeTest {
 
     fun home(
         interactions: HomeInteractions,
-        viewModel: RxViewModel<HomeVM>
-    ): HomeDependency =
-        HomeDependency.create(
+        viewModel: RxViewModel<HomeViewState>
+    ): HomeDependencies =
+        HomeDependencies.create(
             interactions,
             MockRepository(),
             MockPersistence(Observable.empty()),
@@ -27,34 +26,34 @@ class HomeTest {
 
     @Test
     fun `Empty screen automatically refreshes data`() {
-        val empty = TestRxViewModel<HomeVM>(HomeVM.Idle)
+        val empty = TestRxViewModel<HomeViewState>(HomeViewState.Idle)
 
         home(empty_interactions, empty)
             .program()
             .flatMap { empty.state() }
             .test()
             .awaitCount(3)
-            .assertValueAt(0, HomeVM.Idle)
-            .assertValueAt(1, HomeVM.Loading)
-            .assertValueAt(2) { it is HomeVM.Full }
+            .assertValueAt(0, HomeViewState.Idle)
+            .assertValueAt(1, HomeViewState.Loading)
+            .assertValueAt(2) { it is HomeViewState.Full }
             .assertNotTerminated()
     }
 
     @Test
     fun `Loaded screen does nothing`() {
-        val empty = TestRxViewModel<HomeVM>(HomeVM.Idle)
+        val empty = TestRxViewModel<HomeViewState>(HomeViewState.Idle)
 
-        empty.post(HomeVM.Full(emptyList()))
+        empty.post(HomeViewState.Full(emptyList()))
             .flatMap {
-                eitherPar( // Run program & listen to state in parallel
+                parallelEither( // Run program & listen to state in parallel
                     home(empty_interactions, empty).program(),
                     empty.state()
                 ).filterMap { it.firstOrNone() } // Ignore program output
             }
             .test()
             .awaitCount(2)
-            .assertValueAt(0, HomeVM.Idle)
-            .assertValueAt(1) { it is HomeVM.Full }
+            .assertValueAt(0, HomeViewState.Idle)
+            .assertValueAt(1) { it is HomeViewState.Full }
             .assertNotTerminated()
     }
 }

@@ -17,7 +17,7 @@ import kotlinx.android.synthetic.main.fragment_home.view.*
 
 class HomeFragment : Fragment() {
 
-    private val viewModel = RxViewModel<HomeVM>(this, HomeVM.Idle)
+    private val viewModel = RxViewModel<HomeViewState>(this, HomeViewState.Idle)
     private val repo = MockRepository()
     private val persistence = MockPersistence()
 
@@ -39,7 +39,7 @@ class HomeFragment : Fragment() {
 
         Observable.merge(
             // Run business logic
-            HomeDependency.create(interactions, repo, persistence, viewModel)
+            HomeDependencies.create(interactions, repo, persistence, viewModel)
                 .program().subscribeOn(Schedulers.computation()),
 
             // Run view rendering
@@ -55,21 +55,21 @@ class HomeFragment : Fragment() {
     private fun render(
         view: View,
         adapter: UserAdapter,
-        state: HomeVM
+        state: HomeViewState
     ): Observable<Unit> =
         Observable.fromCallable {
             when (state) {
-                HomeVM.Idle -> {
+                HomeViewState.Idle -> {
                     view.pullToRefresh.isRefreshing = false
                 }
-                HomeVM.Loading -> {
+                HomeViewState.Loading -> {
                     view.pullToRefresh.isRefreshing = true
                 } // Use default loading ad
-                is HomeVM.Full -> {
+                is HomeViewState.Full -> {
                     view.pullToRefresh.isRefreshing = false
                     adapter.submitList(state.items)
                 }
-                is HomeVM.Error -> {
+                is HomeViewState.Error -> {
                     view.pullToRefresh.isRefreshing = false
                     Snackbar.make(view, getString(R.string.error, state.t), BaseTransientBottomBar.LENGTH_SHORT).show()
                 }

@@ -19,17 +19,17 @@ interface HomeInteractions {
     fun pullToRefresh(): Observable<Unit>
 }
 
-interface HomeDependency : HomeInteractions, AccountRepo, AccountPersistence, RxViewModel<HomeVM> {
+interface HomeDependencies : HomeInteractions, AccountRepo, AccountPersistence, RxViewModel<HomeViewState> {
     companion object {
         fun create(
             interactions: HomeInteractions,
             repo: AccountRepo,
             persistence: AccountPersistence,
-            viewModel: RxViewModel<HomeVM>
-        ): HomeDependency = object : HomeDependency,
+            viewModel: RxViewModel<HomeViewState>
+        ): HomeDependencies = object : HomeDependencies,
             HomeInteractions by interactions,
             AccountRepo by repo,
             AccountPersistence by persistence,
-            RxViewModel<HomeVM> by viewModel {}
+            RxViewModel<HomeViewState> by viewModel {}
     }
 }

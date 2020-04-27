@@ -12,6 +12,5 @@
         android:layout_height="match_parent"
         android:overScrollMode="never"
         android:scrollbars="none"
-        tools:layoutManager="LinearLayoutManager" />
-
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
 </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>

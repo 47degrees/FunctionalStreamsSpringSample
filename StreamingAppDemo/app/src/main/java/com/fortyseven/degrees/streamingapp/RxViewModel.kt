@@ -10,10 +10,10 @@ interface RxViewModel<A> {
 
     fun post(a: A): Observable<Unit>
     fun state(): Observable<A>
-    fun isNotEmpty(): Observable<Boolean>
+    fun isEmpty(): Observable<Boolean>
+    fun isNotEmpty(): Observable<Boolean> =
+        isEmpty().map(Boolean::not)
 
-    fun isEmpty(): Observable<Boolean> =
-        isNotEmpty().map(Boolean::not)
 }
 
 fun <A> RxViewModel(lifecycle: LifecycleOwner, default: A? = null): RxViewModel<A> =
@@ -28,6 +28,8 @@ fun <A> RxViewModel(lifecycle: LifecycleOwner, default: A? = null): RxViewModel<
         override fun post(a: A): Observable<Unit> =
             Observable.fromCallable { _state.onNext(a) }
 
-        override fun isNotEmpty(): Observable<Boolean> =
-            Observable.fromCallable { _state.hasValue() }
+        override fun isEmpty(): Observable<Boolean> =
+            Observable.fromCallable {
+                _state.hasValue() && _state.value == default
+            }
     }

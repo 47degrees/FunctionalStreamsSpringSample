@@ -46,7 +46,7 @@ class HomeTest {
 
         empty.post(HomeVM.Full(emptyList()))
             .flatMap {
-                eitherPar( // Run program & listen to state in parallel
+                parallelEither( // Run program & listen to state in parallel
                     home(empty_interactions, empty).program(),
                     empty.state()
                 ).filterMap { it.firstOrNone() } // Ignore program output

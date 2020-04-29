@@ -21,6 +21,11 @@ class HomeFragment : Fragment() {
     private val repo = MockRepository()
     private val persistence = MockPersistence()
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        retainInstance = true
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
